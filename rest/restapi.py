@@ -141,7 +141,7 @@ class Paraphrases(Resource):
             ret = []
             for c in canonicals:
                 c = IntentCanonical.from_json(c)
-                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n, paraphrasers)
+                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n, paraphrasers if paraphrasers else None)
                 ret.append(c.to_json())
 
             return jsonify(ret)

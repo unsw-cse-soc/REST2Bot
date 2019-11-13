@@ -22,13 +22,13 @@ class Paraphraser:
     def paraphrase(self, utterance, params: list, num_of_sampled_params=100, paraphrasers=PARAPHRASERS):
 
         ps = []
-        if 'COMMON_PREFIX' in paraphrasers:
+        if not paraphrasers or 'COMMON_PREFIX' in paraphrasers:
             ps.extend(createParaphrase(self.cp.paraphrase(utterance), params, 'COMMON_PREFIX'))
 
-        if 'APACHE_JOSHUA' in paraphrasers:
+        if not paraphrasers or 'APACHE_JOSHUA' in paraphrasers:
             ps.extend(createParaphrase(joshua_paraphrase(utterance), params, 'APACHE_JOSHUA'))
 
-        if 'NEMATUS' in paraphrasers:
+        if not paraphrasers or 'NEMATUS' in paraphrasers:
             ps.extend(createParaphrase(self.nematus.paraphrase(utterance.split()), params, 'NEMATUS'))
 
         ps = self.paramValParaphraser.paraphrase(ps, params, num_of_sampled_params)

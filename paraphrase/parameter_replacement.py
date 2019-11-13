@@ -26,23 +26,24 @@ class ParamValParaphraser:
                     all_params = False
                     break
             if all_params:
-                valid_uttrs.append((paraph, cparams))
+                valid_uttrs.append(paraph)
 
         for p in params:
             values = self.param_sampler.sample(p, n)
             pname = "<< {} >>".format(p.name)
             new_utter = []
             for v in values:
-                for t in list(valid_uttrs):
-                    paraph = t[0]
-                    ps = t[1]
-                    new_u = paraph.replace(pname, str(v))
-                    for c in ps:
+                for paraph in valid_uttrs:
+                    # paraph = t[0]
+                    # ps = t[1]
+                    paraph.paraphrase = paraph.paraphrase.replace(pname, str(v))
+                    paraph.entities = [p.clone() for p in paraph.entities]
+                    for c in paraph.entities:
                         if c.name == p.name:
                             c.example = v
 
                     # if new_u not in allset:
-                    new_utter.append(Paraphrase(new_u, ps))
+                    new_utter.append(p)
 
             ret.extend(new_utter)
         return ret
