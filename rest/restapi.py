@@ -1,3 +1,4 @@
+import logging
 import werkzeug
 from flask import Flask, jsonify, request
 from flask_restplus import Api, Resource, reqparse, abort, fields, inputs, Model
@@ -68,6 +69,7 @@ query_parser.add_argument('n', type=int, help="number of sampled values for the 
 
 paraphraser_parser = reqparse.RequestParser()
 paraphraser_parser.add_argument('n', type=int, help="number of paraphrases", location='args')
+paraphraser_parser.add_argument('score', type=inputs.boolean, default=False, help="score generated paraphrases", location='args')
 paraphraser_parser.add_argument('paraphrasers', type=str,
                                 help='Pick from: {}'.format(", ".join(PARAPHRASERS)),
                                 action="append", location='args')
@@ -130,21 +132,20 @@ class Paraphrases(Resource):
         try:
 
             args = paraphraser_parser.parse_args()
-            n = args.get("n")
-            if not n:
-                n = 10
-
-            paraphrasers = args.get("paraphrasers")
+            n = args.get("n", 10)
+            paraphrasers = args.get("paraphrasers", [])
+            score = args.get("score", True)
             canonicals = request.json
 
             ret = []
             for c in canonicals:
                 c = IntentCanonical.from_json(c)
                 c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n,
-                                                       paraphrasers if paraphrasers else None)
+                                                       paraphrasers if paraphrasers else None,
+                                                       score)
                 ret.append(c.to_json())
 
-            return jsonify(ret)
+            return jsonify(ret[:n])
 
         except Exception as e:
             raise e
@@ -174,4 +175,6 @@ class EntityValues(Resource):
 
 
 if __name__ == '__main__':
+    LOGGER = logging.getLogger("artemis.fileman.disk_memoize")
+    LOGGER.setLevel(logging.WARN)
     app.run("0.0.0.0", port=8080)

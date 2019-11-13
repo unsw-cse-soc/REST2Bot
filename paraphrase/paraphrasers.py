@@ -4,12 +4,20 @@ from swagger.entities import Param, Paraphrase
 from swagger.param_sampling import ParamValueSampler
 from utils.joshua import joshua_paraphrase
 from utils.nematus import NematusParaphraseGenerator
+from utils.sentence_embeddings import similarity
 
 PARAPHRASERS = [
     'COMMON_PREFIX'
     'APACHE_JOSHUA',
     'NEMATUS'
 ]
+
+
+def similarity_score(utterance, ps):
+    for p in ps:
+        p.score = similarity(utterance, p.paraphrase, "UniversalSentenceEncoder")
+    ps = sorted(ps, key=lambda p: - p.score)
+    return ps
 
 
 class Paraphraser:
@@ -19,7 +27,7 @@ class Paraphraser:
         self.nematus = NematusParaphraseGenerator()
         self.paramValParaphraser = ParamValParaphraser(param_sampler=self.param_sampler)
 
-    def paraphrase(self, utterance, params: list, num_of_sampled_params=100, paraphrasers=PARAPHRASERS):
+    def paraphrase(self, utterance, params: list, num_of_sampled_params=100, paraphrasers=PARAPHRASERS, score=True):
 
         ps = []
         if not paraphrasers or 'COMMON_PREFIX' in paraphrasers:
@@ -32,6 +40,9 @@ class Paraphraser:
             ps.extend(createParaphrase(self.nematus.paraphrase(utterance.split()), params, 'NEMATUS'))
 
         ps = self.paramValParaphraser.paraphrase(ps, params, num_of_sampled_params)
+
+        if score:
+            ps = similarity_score(utterance, ps)
         return ps
 
 
