@@ -2,7 +2,6 @@ import werkzeug
 from flask import Flask, jsonify, request
 from flask_restplus import Api, Resource, reqparse, abort, fields, inputs, Model
 
-
 from canonical.api2can_gen import TrainingExprGenerator
 from canonical.rule_based import RuleBasedCanonicalGenerator
 from paraphrase.paraphrasers import Paraphraser, PARAPHRASERS
@@ -19,6 +18,7 @@ param_model = api.model('Parameter', {
     "name": fields.String,
     "type": fields.String,
     "desc": fields.String,
+    "example": fields.String,
     "required": fields.Boolean,
     "is_auth_param": fields.Boolean,
 })
@@ -71,7 +71,6 @@ paraphraser_parser.add_argument('n', type=int, help="number of paraphrases", loc
 paraphraser_parser.add_argument('paraphrasers', type=str,
                                 help='Pick from: {}'.format(", ".join(PARAPHRASERS)),
                                 action="append", location='args')
-
 
 
 @api.route("/extract_operations")
@@ -141,7 +140,8 @@ class Paraphrases(Resource):
             ret = []
             for c in canonicals:
                 c = IntentCanonical.from_json(c)
-                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n, paraphrasers if paraphrasers else None)
+                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n,
+                                                       paraphrasers if paraphrasers else None)
                 ret.append(c.to_json())
 
             return jsonify(ret)
@@ -149,8 +149,6 @@ class Paraphrases(Resource):
         except Exception as e:
             raise e
             abort(400, message=e)
-
-        pass
 
 
 @api.route("/suggest_parameter_values")

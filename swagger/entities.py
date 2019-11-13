@@ -3,9 +3,11 @@ from collections import namedtuple, OrderedDict
 
 
 class Paraphrase:
-    def __init__(self, paraphrase, entities):
+    def __init__(self, paraphrase, entities, score=None, method=None):
         self.entities = entities
         self.paraphrase = paraphrase
+        self.score = score
+        self.method = method
 
     def to_json(self):
         ret = self.__dict__
@@ -32,6 +34,9 @@ class Paraphrase:
         ret.entities = entities
 
         return ret
+
+    def clone(self):
+        return Paraphrase(self.paraphrase, [p.clone() for p in self.entities], self.score, self.method)
 
 
 class IntentCanonical:

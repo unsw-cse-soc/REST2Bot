@@ -17,7 +17,7 @@ class ParamValParaphraser:
         for paraph in paraphrases:
             all_params = True
 
-            if "<<" not in paraph.paraphrase:
+            if "<<" not in paraph.paraphrase and not params:
                 ret.append(paraph)
                 continue
 
@@ -36,14 +36,17 @@ class ParamValParaphraser:
                 for paraph in valid_uttrs:
                     # paraph = t[0]
                     # ps = t[1]
+                    paraph = paraph.clone()
                     paraph.paraphrase = paraph.paraphrase.replace(pname, str(v))
-                    paraph.entities = [p.clone() for p in paraph.entities]
+                    # paraph.entities = [p.clone() for p in paraph.entities]
                     for c in paraph.entities:
                         if c.name == p.name:
                             c.example = v
+                        else:
+                            continue
 
                     # if new_u not in allset:
-                    new_utter.append(p)
+                    new_utter.append(paraph)
 
             ret.extend(new_utter)
         return ret
