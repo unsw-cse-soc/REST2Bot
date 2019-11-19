@@ -1,3 +1,5 @@
+from artemis.fileman.disk_memoize import memoize_to_disk
+
 from paraphrase.common_prefix import PrefixParaphraser
 from paraphrase.parameter_replacement import ParamValParaphraser
 from swagger.entities import Param, Paraphrase
@@ -7,7 +9,7 @@ from utils.nematus import NematusParaphraseGenerator
 from utils.sentence_embeddings import similarity
 
 PARAPHRASERS = [
-    'COMMON_PREFIX'
+    'COMMON_PREFIX',
     'APACHE_JOSHUA',
     'NEMATUS'
 ]
@@ -20,30 +22,40 @@ def similarity_score(utterance, ps):
     return ps
 
 
+nematus_paraphraser = NematusParaphraseGenerator()
+
+
+@memoize_to_disk
+def nematus_paraphrase(utterance, paraphrase_count):
+    return nematus_paraphraser.paraphrase(utterance.split())
+
+
 class Paraphraser:
     def __init__(self) -> None:
         self.cp = PrefixParaphraser()
         self.param_sampler = ParamValueSampler()
-        self.nematus = NematusParaphraseGenerator()
+        self.nematus = nematus_paraphraser
         self.paramValParaphraser = ParamValParaphraser(param_sampler=self.param_sampler)
 
-    def paraphrase(self, utterance, params: list, num_of_sampled_params=100, paraphrasers=PARAPHRASERS, score=True):
+    def paraphrase(self, utterance, params: list, paraphrase_count=10, num_of_sampled_params=10, paraphrasers=PARAPHRASERS, score=True):
 
         ps = []
         if not paraphrasers or 'COMMON_PREFIX' in paraphrasers:
-            ps.extend(createParaphrase(self.cp.paraphrase(utterance), params, 'COMMON_PREFIX'))
+            ps.extend(createParaphrase(self.cp.paraphrase(utterance, paraphrase_count), params, 'COMMON_PREFIX'))
 
         if not paraphrasers or 'APACHE_JOSHUA' in paraphrasers:
-            ps.extend(createParaphrase(joshua_paraphrase(utterance), params, 'APACHE_JOSHUA'))
+            ps.extend(createParaphrase(joshua_paraphrase(utterance, paraphrase_count), params, 'APACHE_JOSHUA'))
 
         if not paraphrasers or 'NEMATUS' in paraphrasers:
-            ps.extend(createParaphrase(self.nematus.paraphrase(utterance.split()), params, 'NEMATUS'))
+            ps.extend(createParaphrase(nematus_paraphrase(utterance, paraphrase_count), params, 'NEMATUS'))
 
+        ps = ps[:paraphrase_count]
         ps = self.paramValParaphraser.paraphrase(ps, params, num_of_sampled_params)
 
         if score:
             ps = similarity_score(utterance, ps)
-        return ps
+        ps = list(filter(lambda p: p.paraphrase.lower() != utterance.lower(), ps))
+        return set(ps)
 
 
 def createParaphrase(paraphrases, entities, method):

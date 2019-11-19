@@ -1,0 +1,804 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.min.js'></script>
+    <style>
+        /*custom font*/
+        @import url(https://fonts.googleapis.com/css?family=Montserrat);
+
+        /*basic reset*/
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            height: 100%;
+            /*Image only BG fallback*/
+
+            /*background = gradient + image pattern combo*/
+            background: linear-gradient(rgb(46, 90, 103), rgba(14, 150, 181, 0.6));
+        }
+
+        body {
+            font-family: montserrat, arial, verdana;
+        }
+
+        /*form styles*/
+        #msform {
+            width: 900px;
+            margin: 50px auto;
+            text-align: center;
+            position: relative;
+        }
+
+        #msform fieldset {
+            background: white;
+            border: 0 none;
+            border-radius: 3px;
+            box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.4);
+            padding: 20px 30px;
+            box-sizing: border-box;
+            width: 80%;
+            margin: 0 10%;
+
+            /*stacking fieldsets above each other*/
+            position: relative;
+        }
+
+        /*Hide all except first fieldset*/
+        #msform fieldset:not(:first-of-type) {
+            display: none;
+        }
+
+        /*inputs*/
+        #msform input, #msform textarea {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            margin-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: montserrat;
+            color: #2C3E50;
+            font-size: 10px;
+        }
+
+        /*buttons*/
+        #msform .action-button {
+            width: 100px;
+            background: #27AE60;
+            font-weight: bold;
+            color: white;
+            border: 0 none;
+            border-radius: 1px;
+            cursor: pointer;
+            padding: 10px 5px;
+            margin: 10px 5px;
+        }
+
+        #msform .action-button:hover, #msform .action-button:focus {
+            box-shadow: 0 0 0 2px white, 0 0 0 3px #27AE60;
+        }
+
+        /*headings*/
+        .fs-title {
+            font-size: 15px;
+            text-transform: uppercase;
+            color: #2C3E50;
+            margin-bottom: 10px;
+        }
+
+        .fs-subtitle {
+            font-weight: normal;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /*progressbar*/
+        #progressbar {
+            margin-bottom: 30px;
+            overflow: hidden;
+            /*CSS counters to number the steps*/
+            counter-reset: step;
+        }
+
+        #progressbar li {
+            list-style-type: none;
+            color: white;
+            text-transform: uppercase;
+            font-size: 9px;
+            width: 20%;
+            float: left;
+            position: relative;
+        }
+
+        #progressbar li:before {
+            content: counter(step);
+            counter-increment: step;
+            width: 20px;
+            line-height: 20px;
+            display: block;
+            font-size: 10px;
+            color: #333;
+            background: white;
+            border-radius: 3px;
+            margin: 0 auto 5px auto;
+        }
+
+        /*progressbar connectors*/
+        #progressbar li:after {
+            content: '';
+            width: 100%;
+            height: 2px;
+            background: white;
+            position: absolute;
+            left: -50%;
+            top: 9px;
+            z-index: -1; /*put it behind the numbers*/
+        }
+
+        #progressbar li:first-child:after {
+            /*connector not needed before the first step*/
+            content: none;
+        }
+
+        /*marking active/completed steps green*/
+        /*The number of the step and the connector before it = green*/
+        #progressbar li.active:before, #progressbar li.active:after {
+            background: #27AE60;
+            color: white;
+        }
+
+        .qq-file-name {
+            color: cadetblue;
+        }
+
+        .translators .checkbox {
+            width: 10px !important;
+        }
+
+        .translators div {
+            text-align: left !important;
+            font-size: 12px;
+        }
+
+
+    </style>
+    <style>
+        /* The container */
+        .container {
+            display: block;
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            /*font-size: 22px;*/
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Hide the browser's default checkbox */
+        .container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        /* Create a custom checkbox */
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 25px;
+            width: 25px;
+            background-color: #eee;
+        }
+
+        /* On mouse-over, add a grey background color */
+        .container:hover input ~ .checkmark {
+            background-color: #ccc;
+        }
+
+        /* When the checkbox is checked, add a blue background */
+        .container input:checked ~ .checkmark {
+            background-color: #2196F3;
+        }
+
+        /* Create the checkmark/indicator (hidden when not checked) */
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        /* Show the checkmark when checked */
+        .container input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        /* Style the checkmark/indicator */
+        .container .checkmark:after {
+            left: 9px;
+            top: 5px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            -webkit-transform: rotate(45deg);
+            -ms-transform: rotate(45deg);
+            transform: rotate(45deg);
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/file-uploader/5.16.2/all.fine-uploader/fine-uploader-gallery.css"
+          rel="stylesheet"/>
+    <link href="jquery.json-viewer.css" rel="stylesheet"/>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/file-uploader/5.16.2/jquery.fine-uploader/fine-uploader.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/file-uploader/5.16.2/fine-uploader.min.js"></script>
+    <script type="text/javascript" src="jquery.json-editor.min.js"></script>
+
+    <script type="text/template" id="qq-template">
+        <div class="qq-uploader-selector qq-uploader qq-gallery" qq-drop-area-text="Drop files here">
+            <div class="qq-total-progress-bar-container-selector qq-total-progress-bar-container">
+                <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                     class="qq-total-progress-bar-selector qq-progress-bar qq-total-progress-bar"></div>
+            </div>
+            <div class="qq-upload-drop-area-selector qq-upload-drop-area" qq-hide-dropzone>
+                <span class="qq-upload-drop-area-text-selector"></span>
+            </div>
+            <div class="qq-upload-button-selector qq-upload-button">
+                <div style="font-size: smaller;">Upload a file</div>
+            </div>
+            <span class="qq-drop-processing-selector qq-drop-processing">
+                <span>Processing dropped files...</span>
+                <span class="qq-drop-processing-spinner-selector qq-drop-processing-spinner"></span>
+            </span>
+            <ul class="qq-upload-list-selector qq-upload-list" role="region" aria-live="polite"
+                aria-relevant="additions removals">
+                <li>
+                    <span role="status" class="qq-upload-status-text-selector qq-upload-status-text"></span>
+                    <div class="qq-progress-bar-container-selector qq-progress-bar-container">
+                        <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                             class="qq-progress-bar-selector qq-progress-bar"></div>
+                    </div>
+                    <span class="qq-upload-spinner-selector qq-upload-spinner"></span>
+                    <div class="qq-thumbnail-wrapper">
+                        <img class="qq-thumbnail-selector" qq-max-size="120" qq-server-scale>
+                    </div>
+                    <button type="button" class="qq-upload-cancel-selector qq-upload-cancel">X</button>
+                    <button type="button" class="qq-upload-retry-selector qq-upload-retry">
+                        <span class="qq-btn qq-retry-icon" aria-label="Retry"></span>
+                        Retry
+                    </button>
+
+                    <div class="qq-file-info">
+                        <div class="qq-file-name">
+                            <span class="qq-upload-file-selector qq-upload-file"></span>
+                            <span class="qq-edit-filename-icon-selector qq-btn qq-edit-filename-icon"
+                                  aria-label="Edit filename"></span>
+                        </div>
+                        <input class="qq-edit-filename-selector qq-edit-filename" tabindex="0" type="text">
+                        <span class="qq-upload-size-selector qq-upload-size"></span>
+
+                    </div>
+                </li>
+            </ul>
+
+            <dialog class="qq-alert-dialog-selector">
+                <div class="qq-dialog-message-selector"></div>
+                <div class="qq-dialog-buttons">
+                    <button type="button" class="qq-cancel-button-selector">Close</button>
+                </div>
+            </dialog>
+
+            <dialog class="qq-confirm-dialog-selector">
+                <div class="qq-dialog-message-selector"></div>
+                <div class="qq-dialog-buttons">
+                    <button type="button" class="qq-cancel-button-selector">No</button>
+                    <button type="button" class="qq-ok-button-selector">Yes</button>
+                </div>
+            </dialog>
+
+            <dialog class="qq-prompt-dialog-selector">
+                <div class="qq-dialog-message-selector"></div>
+                <input type="text">
+                <div class="qq-dialog-buttons">
+                    <button type="button" class="qq-cancel-button-selector">Cancel</button>
+                    <button type="button" class="qq-ok-button-selector">Ok</button>
+                </div>
+            </dialog>
+        </div>
+    </script>
+
+    <script>
+        canonicals = [];
+        operations = [];
+    </script>
+
+    <style>
+        .preview {
+            overflow: auto;
+            /*padding: 10px;*/
+            height: 300px;
+            width: 280px;
+            /*position: fixed;*/
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px dashed #CCCCCC;
+        }
+
+        div.preview pre {
+            background: #fafafa;
+        }
+
+        .json-property {
+            color: #376875;
+        }
+
+        .json-dict {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+<!-- multistep form -->
+<form id="msform">
+    <!-- progressbar -->
+    <ul id="progressbar">
+        <li class="active">Open API Specs</li>
+        <li>Canonical</li>
+        <li>Paraphrase</li>
+        <li>Train model</li>
+        <li>Webhook</li>
+    </ul>
+    <!-- fieldsets -->
+    <fieldset>
+
+        <h2 class="fs-title">Parse Open API Specs</h2>
+        <h3 class="fs-subtitle">Upload your API specs to begin with</h3>
+
+        <table>
+            <tr>
+                <td style="width: 400px">
+                    <div id="uploader"></div>
+                    <script>
+                        // Some options to pass to the uploader are discussed on the next page
+                        var uploader = new qq.FineUploader({
+                            element: document.getElementById("uploader"),
+                            height: 100,
+                            multiple: true,
+                            debug: true,
+
+                            imagePreviews: false,
+                            thumbnails: {
+                                placeholders: {
+                                    notAvailablePath: "swagger-icon-250x250.png"
+                                }
+                            },
+                            request: {
+                                endpoint: 'http://localhost:8080/extract_operations'
+                            },
+                            validation: {
+                                allowedExtensions: ['yaml']
+                            },
+                            callbacks: {
+                                onComplete: function (id, name, responseJSON, xhr) {
+                                    console.log(responseJSON);
+                                    console.log(name);
+                                    operations = operations.concat(responseJSON['operations'])
+                                    var editor = new JsonEditor('#json-display', operations);
+                                },
+                                onError: function (id, name, errorReason, xhrOrXdr) {
+                                    alert(qq.format("Error on file number {} - {}.  Reason: {}", id, name, errorReason));
+                                    console.log(xhrOrXdr);
+                                }
+                            }
+                        })
+                    </script>
+                </td>
+                <td style="vertical-align: top;">
+                    Preview:
+                    <div class="preview">
+
+                        <pre style="text-align: left;width: fit-content;" id="json-display"></pre>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+
+        <input type="button" name="next" class="next action-button" value="Next"/>
+    </fieldset>
+    <fieldset>
+        <h2 class="fs-title">Canonical Utterance Generation</h2>
+        <h3 class="fs-subtitle">Select the approaches for generating canonical utterances for extracted operations
+            (intents)</h3>
+
+        <table>
+            <tr>
+                <td style="width: 400px">
+                    <div class="translators" style="text-align: left;">
+                        <label class="container">Rule-based Translator
+                            <input type="checkbox" checked="checked" id="RULE" value="RULE">
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="container">Summary-based Translator
+                            <input type="checkbox" id="SUMMARY" checked="checked" value="SUMMARY">
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="container">Deep Learning Translator
+                            <input type="checkbox" id="NEURAL" value="NEURAL" checked="checked">
+                            <span class="checkmark"></span>
+                        </label>
+
+                    </div>
+                </td>
+                <td style="vertical-align: top;">
+                    Preview:
+                    <div class="preview">
+                        <pre style="text-align: left;width: fit-content;" id="canonical-json-display"></pre>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+
+        <input type="button" name="previous" class="previous action-button" value="Previous"/>
+
+        <script>
+            function to_canonical() {
+                var rule = $('#RULE').is(':checked');
+                var neural = $('#NEURAL').is(':checked');
+                var summary = $('#SUMMARY').is(':checked');
+
+                var q = "";
+                if (rule)
+                    q += "translators=RULE&";
+                if (neural)
+                    q += "translators=NEURAL&";
+                if (summary)
+                    q += "translators=SUMMARY&";
+
+                url = "http://localhost:8080/generate_canonicals?" + q;
+
+                console.log(operations);
+                $.ajax({
+                    type: 'post',
+                    url: url,
+                    contentType: "application/json",
+                    dataType: 'json',
+                    data: JSON.stringify(operations),
+                    success: function (result) {
+                        canonicals = result;
+                        var editor = new JsonEditor('#canonical-json-display', canonicals);
+                    }
+                })
+
+//                $.post(url, JSON.stringify(operations), function (data, status, xhr) {
+//                    canonicals = data;
+//                    console.log(data);
+//                }, "json");
+            }
+        </script>
+        <input type="button" name="preview" class="action-button" value="Preview" onclick="to_canonical();"/>
+
+        <input type="button" name="next" class="next action-button" value="Next"/>
+    </fieldset>
+    <fieldset>
+        <h2 class="fs-title">Paraphrase</h2>
+        <h3 class="fs-subtitle">To obtain diverse set of training utterances paraphrases your canonical sentences using
+            the following paraphrasing systems and crowd-sourcing platforms</h3>
+
+
+        <table>
+            <tr>
+                <td style="width: 400px">
+                    <div class="paraphrasers" style="text-align: left;">
+
+
+                        <span>Paraphrasers:</span>
+                        <div style="padding: 10px">
+                            <label class="container">Common-Prefix Paraphraser
+                                <input type="checkbox" checked="checked" id="COMMON_PREFIX" value="COMMON_PREFIX">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Nematus Paraphraser
+                                <input type="checkbox" id="NEMATUS" checked="checked" value="NEMATUS">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Apache Joshua
+                                <input type="checkbox" id="APACHE_JOSHUA" value="APACHE_JOSHUA" checked="checked">
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <label disabled class="container" style="color: #525252">Crowdsourced Paraphrases
+                                (Figure-Eight)
+                                <input type="checkbox" disabled>
+                                <span class="checkmark" disabled></span>
+                            </label>
+
+
+                        </div>
+                        <span>Number of paraphrases:</span>
+                        <input type="number" id="pcount"
+                               placeholder="Maximum number of paraphrases per canonical sentences"
+                               value="10">
+                        <label class="container"> Return paraphrase similarity score
+                            <input type="checkbox" checked="checked" id="SCORE" value="SCORE">
+                            <span class="checkmark"></span>
+                        </label>
+
+
+                    </div>
+                </td>
+                <td style="vertical-align: top;">
+                    Preview:
+                    <div class="preview">
+                        <pre style="text-align: left;width: fit-content;" id="traning_data-json-display"></pre>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+
+        <input type="button" name="previous" class="previous action-button" value="Previous"/>
+
+        <script>
+            function to_traning_data() {
+                var common = $('#COMMON_PREFIX').is(':checked');
+                var joshua = $('#APACHE_JOSHUA').is(':checked');
+                var nematus = $('#NEMATUS').is(':checked');
+                var pcount = $('#pcount').val();
+                var score = $('#SCORE').is(':checked');
+
+                var q = "";
+                if (common)
+                    q += "paraphrasers=COMMON_PREFIX&";
+                if (joshua)
+                    q += "paraphrasers=APACHE_JOSHUA&";
+                if (nematus)
+                    q += "paraphrasers=NEMATUS&";
+                if (score)
+                    q += "score=true&";
+                if (pcount)
+                    q += "n=" + pcount;
+
+                url = "http://localhost:8080/generate_paraphrases?" + q;
+
+                $.ajax({
+                    type: 'post',
+                    url: url,
+                    contentType: "application/json",
+                    dataType: 'json',
+                    data: JSON.stringify(canonicals),
+                    success: function (result) {
+                        traning_data = result;
+                        var editor = new JsonEditor('#traning_data-json-display', traning_data);
+                    }
+                })
+
+            }
+        </script>
+        <input type="button" name="preview" class="action-button" value="Preview" onclick="to_traning_data();"/>
+
+        <input type="button" name="next" class="next action-button" value="Next"/>
+
+
+    </fieldset>
+    <fieldset>
+        <h2 class="fs-title">Train NLU Model</h2>
+        <h3 class="fs-subtitle">Select you NLU platform to train your NLU model</h3>
+
+
+        <table>
+            <tr>
+                <td style="width: 400px">
+                    <div class="paraphrasers" style="text-align: left;">
+
+
+                        <span>Paraphrasers:</span>
+                        <div style="padding: 10px">
+                            <label class="container">Common-Prefix Paraphraser
+                                <input type="checkbox" checked="checked" id="COMMON_PREFIX" value="COMMON_PREFIX">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Nematus Paraphraser
+                                <input type="checkbox" id="NEMATUS" checked="checked" value="NEMATUS">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Apache Joshua
+                                <input type="checkbox" id="APACHE_JOSHUA" value="APACHE_JOSHUA" checked="checked">
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <label disabled class="container" style="color: #525252">Crowdsourced Paraphrases
+                                (Figure-Eight)
+                                <input type="checkbox" disabled>
+                                <span class="checkmark" disabled></span>
+                            </label>
+
+
+                        </div>
+                        <span>Number of paraphrases:</span>
+                        <input type="number" id="pcount"
+                               placeholder="Maximum number of paraphrases per canonical sentences"
+                               value="10">
+                        <label class="container"> Return paraphrase similarity score
+                            <input type="checkbox" checked="checked" id="SCORE" value="SCORE">
+                            <span class="checkmark"></span>
+                        </label>
+
+
+                    </div>
+                </td>
+                <td style="vertical-align: top;">
+                    Preview:
+
+                </td>
+            </tr>
+        </table>
+
+
+        <input type="button" name="previous" class="previous action-button" value="Previous"/>
+        <input type="button" name="next" class="next action-button" value="Next"/>
+
+
+    </fieldset>
+    <fieldset>
+        <h2 class="fs-title">Create a Webhook Server</h2>
+        <h3 class="fs-subtitle">Select a programming language to built the webhook server</h3>
+
+
+        <table>
+            <tr>
+                <td style="width: 400px">
+                    <div class="paraphrasers" style="text-align: left;">
+
+
+                        <span>Paraphrasers:</span>
+                        <div style="padding: 10px">
+                            <label class="container">Common-Prefix Paraphraser
+                                <input type="checkbox" checked="checked" id="COMMON_PREFIX" value="COMMON_PREFIX">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Nematus Paraphraser
+                                <input type="checkbox" id="NEMATUS" checked="checked" value="NEMATUS">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="container">Apache Joshua
+                                <input type="checkbox" id="APACHE_JOSHUA" value="APACHE_JOSHUA" checked="checked">
+                                <span class="checkmark"></span>
+                            </label>
+
+                            <label disabled class="container" style="color: #525252">Crowdsourced Paraphrases
+                                (Figure-Eight)
+                                <input type="checkbox" disabled>
+                                <span class="checkmark" disabled></span>
+                            </label>
+
+
+                        </div>
+                        <span>Number of paraphrases:</span>
+                        <input type="number" id="pcount"
+                               placeholder="Maximum number of paraphrases per canonical sentences"
+                               value="10">
+                        <label class="container"> Return paraphrase similarity score
+                            <input type="checkbox" checked="checked" id="SCORE" value="SCORE">
+                            <span class="checkmark"></span>
+                        </label>
+
+
+                    </div>
+                </td>
+                <td style="vertical-align: top;">
+                    Preview:
+
+                </td>
+            </tr>
+        </table>
+
+
+        <input type="button" name="previous" class="previous action-button" value="Previous"/>
+        <input type="button" name="next" class="next action-button" value="Next"/>
+
+
+    </fieldset>
+</form>
+</body>
+</html>
+
+
+<script>
+
+    //jQuery time
+    var current_fs, next_fs, previous_fs; //fieldsets
+    var left, opacity, scale; //fieldset properties which we will animate
+    var animating; //flag to prevent quick multi-click glitches
+
+    $(".next").click(function () {
+        if (animating) return false;
+        animating = true;
+
+        current_fs = $(this).parent();
+        next_fs = $(this).parent().next();
+
+        //activate next step on progressbar using the index of next_fs
+        $("#progressbar li").eq($("fieldset").index(next_fs)).addClass("active");
+
+        //show the next fieldset
+        next_fs.show();
+        //hide the current fieldset with style
+        current_fs.animate({opacity: 0}, {
+            step: function (now, mx) {
+                //as the opacity of current_fs reduces to 0 - stored in "now"
+                //1. scale current_fs down to 80%
+                scale = 1 - (1 - now) * 0.2;
+                //2. bring next_fs from the right(50%)
+                left = (now * 50) + "%";
+                //3. increase opacity of next_fs to 1 as it moves in
+                opacity = 1 - now;
+                current_fs.css({
+                    'transform': 'scale(' + scale + ')',
+                    'position': 'absolute'
+                });
+                next_fs.css({'left': left, 'opacity': opacity});
+            },
+            duration: 800,
+            complete: function () {
+                current_fs.hide();
+                animating = false;
+            },
+            //this comes from the custom easing plugin
+            easing: 'easeInOutBack'
+        });
+    });
+
+    $(".previous").click(function () {
+        if (animating) return false;
+        animating = true;
+
+        current_fs = $(this).parent();
+        previous_fs = $(this).parent().prev();
+
+        //de-activate current step on progressbar
+        $("#progressbar li").eq($("fieldset").index(current_fs)).removeClass("active");
+
+        //show the previous fieldset
+        previous_fs.show();
+        //hide the current fieldset with style
+        current_fs.animate({opacity: 0}, {
+            step: function (now, mx) {
+                //as the opacity of current_fs reduces to 0 - stored in "now"
+                //1. scale previous_fs from 80% to 100%
+                scale = 0.8 + (1 - now) * 0.2;
+                //2. take current_fs to the right(50%) - from 0%
+                left = ((1 - now) * 50) + "%";
+                //3. increase opacity of previous_fs to 1 as it moves in
+                opacity = 1 - now;
+                current_fs.css({'left': left});
+                previous_fs.css({'transform': 'scale(' + scale + ')', 'opacity': opacity});
+            },
+            duration: 800,
+            complete: function () {
+                current_fs.hide();
+                animating = false;
+            },
+            //this comes from the custom easing plugin
+            easing: 'easeInOutBack'
+        });
+    });
+
+    $(".submit").click(function () {
+        return false;
+    })
+
+</script>

@@ -8,6 +8,7 @@ import json
 import requests
 
 # from utils.entities import ParaphraseData
+from artemis.fileman.disk_memoize import memoize_to_disk
 
 
 class Translation:
@@ -58,7 +59,8 @@ class Client(object):
 
 
 class NematusParaphraseGenerator:
-    def __init__(self, src_translator_host='localhost', src_translator_port=5001, en_translator_host='localhost', en_translator_port=5002):
+    def __init__(self, src_translator_host='localhost', src_translator_port=5001, en_translator_host='localhost',
+                 en_translator_port=5002):
         self.en2deClient = Client(src_translator_host, src_translator_port)
         self.de2enClient = Client(en_translator_host, en_translator_port)
 
@@ -72,8 +74,8 @@ class NematusParaphraseGenerator:
             for t in trans:
                 text = " ".join(t.tokens)
                 # if text not in para_set and input_text != text:
-                    # paraphrases.append(ParaphraseData(p.tokens, t.tokens, p.score * t.score))
-                    # paraphrases.append(text)
+                # paraphrases.append(ParaphraseData(p.tokens, t.tokens, p.score * t.score))
+                # paraphrases.append(text)
                 para_set.add(text)
         return para_set
 

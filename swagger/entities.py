@@ -38,6 +38,9 @@ class Paraphrase:
     def clone(self):
         return Paraphrase(self.paraphrase, [p.clone() for p in self.entities], self.score, self.method)
 
+    def __hash__(self) -> int:
+        return json.dumps(self.to_json()).__hash__()
+
 
 class IntentCanonical:
     def __init__(self, intent, canonical, entities, **keys):

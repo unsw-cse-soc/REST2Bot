@@ -1,6 +1,7 @@
 import json
 import os
 
+from artemis.fileman.disk_memoize import memoize_to_disk
 from nltk import ngrams
 from collections import Counter
 
@@ -15,10 +16,12 @@ class PrefixParaphraser:
             for l in f.readlines():
                 self.prefixes.append(l.strip())
 
-    def paraphrase(self, canonical_utterance) -> list:
+    def paraphrase(self, canonical_utterance, n: int) -> list:
         ret = []
         for p in self.prefixes:
             ret.append("{} {}".format(p, canonical_utterance))
+            if len(p) == n:
+                break
 
         return ret
 

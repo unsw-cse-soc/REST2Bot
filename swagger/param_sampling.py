@@ -1,4 +1,3 @@
-import operator
 import os
 from collections import Counter
 
@@ -44,7 +43,7 @@ class ParamValueSampler:
     def sample(self, param: Param, n: int):
 
         if self.return_param_name and n == 1:
-            return ["<< "+param.name.upper()+" >>"]
+            return ["<< " + param.name.upper() + " >>"]
 
         values = []
         if param.example:
@@ -72,7 +71,8 @@ class ParamValueSampler:
 
         return []
 
-    def common_param_sampler(self, param: Param, n: int):
+    @staticmethod
+    def common_param_sampler(param: Param, n: int):
         gold_values = {
             'email': 'user{}@company.com',
             'username': 'my_username{}',

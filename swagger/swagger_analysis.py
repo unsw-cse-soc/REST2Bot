@@ -5,6 +5,7 @@ from os import walk
 
 from swagger.entities import Param, Operation
 from swagger.swagger_parser import SwaggerParser
+from swagger.swagger_utils import ParamUtils
 
 
 class SwaggerAnalyser:
@@ -222,10 +223,13 @@ class SwaggerAnalyser:
                     #     url = url.replace(self.doc.base_path, '')
                     op = Operation(m, url, summary, desc, response_desc, params, operation_id=operation_id,
                                    base_path=self.base_path())
+
+                    operation_id = ParamUtils.human_readable_name(operation_id)
                     if operation_id:
+                        operation_id.replace(" ", "_")
                         op.intent = operation_id
                     else:
-                        op.intent = m + "_" + url.replace("/", " ").replace(" ", "_")
+                        op.intent = m + "_" + url.replace("/", " ").replace(" ", "_").replace("{", "").replace("}", "")
                     self.operations.append(op)
 
         return self.operations

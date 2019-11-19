@@ -2,6 +2,7 @@ import re
 import traceback
 from os import walk
 
+from artemis.fileman.disk_memoize import memoize_to_disk
 from tqdm import tqdm
 from nltk import CFG
 from nltk.corpus.reader import VERB, json
@@ -21,6 +22,21 @@ common_verbs = {'get', 'create', 'delete', 'remove', 'eliminate', 'update', 'rep
 common_sverbs = {v + 's' for v in common_verbs}
 lemmatizer = WordNetLemmatizer()
 
+
+def replace_hyperlinks(text):
+    p = re.compile('\[[^\[\]()]*\]\s*\([^\[\]()]*\)')
+    links = p.findall(text)
+    for link in links:
+        l = re.compile('\[[^\[\]()]*\]').findall(link)[0][1:-1]
+        # txt = re.compile('\([^\[\]()]*\)').findall(link)[0][1:-1]
+        text = text.replace(link, l)
+
+    return text
+
+
+# print(replace_hyperlinks(
+#     "this is [/my/otherEndpoint](#/tagName/myOtherEndpointId) just a test [/my/2](#/tagName/dd) dfdfd"))
+#
 
 class TrainingExprGenerator:
     def __init__(self):
@@ -68,15 +84,15 @@ class TrainingExprGenerator:
 
         return ret
 
-    def to_intent(self, Operation, path_params):
+    def to_intent(self, operation, path_params):
         """
         returns the intent of the Operation and path_params which have not been used in the intent
         :return: path_params, intent
         """
 
-        intent = self.extract_intent(Operation.summary)
+        intent = self.extract_intent(operation.summary)
         if not intent:
-            intent = self.extract_intent(Operation.desc)
+            intent = self.extract_intent(operation.desc)
 
         # if not intent:
         #     intent = get_intent(Operation.response_desc)
@@ -103,13 +119,18 @@ class TrainingExprGenerator:
             intent = ParamUtils.normalize(intent)
         # TODO: more robost approaches to defeat misppelling
 
-        path_params, intent = self.replace_path_params(intent, Operation, path_params)
+        path_params, intent = self.replace_path_params(intent, operation, path_params)
         return path_params, intent
 
     @staticmethod
     def extract_intent(text):
+
         if not text or text == 'None':
             return None
+
+        # remove links in swagger []()
+        if "](" in text or "] (" in text:
+            text = replace_hyperlinks(text)
 
         if ':' in text:
             text = text[:text.index(':')]
@@ -283,7 +304,8 @@ class TrainingExprGenerator:
             if not found:
                 ret_path_params.append(p)
 
-        regex = re.compile('(by|based|based on|via|with) (id|specific id|given id|the given id|a specific id)$', re.IGNORECASE)
+        regex = re.compile('(by|based|based on|via|with) (id|specific id|given id|the given id|a specific id)$',
+                           re.IGNORECASE)
         intent = regex.sub('', intent)
 
         return ret_path_params, intent

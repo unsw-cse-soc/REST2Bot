@@ -8,8 +8,10 @@ from canonical.rule_based import RuleBasedCanonicalGenerator
 from paraphrase.paraphrasers import Paraphraser, PARAPHRASERS
 from swagger.entities import Operation, Param, IntentCanonical
 from swagger.swagger_analysis import SwaggerAnalyser
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app,
           default="APIs",
           title="REST2Bot APIs",
@@ -68,10 +70,23 @@ query_parser = reqparse.RequestParser()
 query_parser.add_argument('n', type=int, help="number of sampled values for the given entity")
 
 paraphraser_parser = reqparse.RequestParser()
-paraphraser_parser.add_argument('n', type=int, help="number of paraphrases", location='args')
-paraphraser_parser.add_argument('score', type=inputs.boolean, default=False, help="score generated paraphrases", location='args')
+paraphraser_parser.add_argument('params', type=int, help="number of sampled values for each entities", location='args')
+paraphraser_parser.add_argument('count', type=int, help="number of paraphrases", location='args')
+paraphraser_parser.add_argument('score', type=inputs.boolean, default=False, help="score generated paraphrases",
+                                location='args')
 paraphraser_parser.add_argument('paraphrasers', type=str,
                                 help='Pick from: {}'.format(", ".join(PARAPHRASERS)),
+                                action="append", location='args')
+
+
+TRANSLATORS = {
+    "RULE",
+    "SUMMARY",
+    "NEURAL"
+}
+canonical_parser = reqparse.RequestParser()
+canonical_parser.add_argument('translators', type=str,
+                                help='Pick from: {}'.format(", ".join(TRANSLATORS)),
                                 action="append", location='args')
 
 
@@ -83,12 +98,20 @@ class Specs(Resource):
         """
         extracts operations of a given swagger specs
         """
-        if "yaml" not in request.files:
+        files = list(request.files.values())
+        if not files:
             abort(401, message="file is missing")
         try:
-            yaml = request.files['yaml'].stream.read().decode("utf-8")
-            doc = SwaggerAnalyser(swagger=yaml).analyse()
-            ret = [a.to_json() for a in doc]
+            ret = []
+            for file in files:
+                yaml = file.stream.read().decode("utf-8")
+                doc = SwaggerAnalyser(swagger=yaml).analyse()
+                ret.extend([a.to_json() for a in doc])
+
+            ret = {
+                "operations": ret,
+                "success": True,
+            }
             return jsonify(ret)
         except Exception as e:
             print(e)
@@ -97,7 +120,7 @@ class Specs(Resource):
 
 @api.route("/generate_canonicals")
 class Canonicals(Resource):
-    @api.expect([operation_model])
+    @api.expect(canonical_parser, [operation_model])
     @api.response(200, "Success", [canonical_model])
     def post(self):
         """
@@ -105,19 +128,26 @@ class Canonicals(Resource):
         """
         try:
             ret = []
+            args = canonical_parser.parse_args()
+            translators = args.get("translators", TRANSLATORS)
             lst = request.json
             for o in lst:
                 operation = Operation.from_json(o)
-                canonicals = expr_gen.to_canonical(operation, ignore_non_path_params=False)
-                if canonicals:
-                    ret.extend(canonicals)
-                canonicals = rule_gen.translate(operation, sample_values=False, ignore_non_path_params=False)
-                if canonicals:
-                    ret.extend(canonicals)
+                if not translators or "SUMMARY" in translators:
+                    canonicals = expr_gen.to_canonical(operation, ignore_non_path_params=False)
+
+                    if canonicals:
+                        ret.extend(canonicals)
+
+                if not translators or "RULE" in translators:
+                    canonicals = rule_gen.translate(operation, sample_values=False, ignore_non_path_params=False)
+                    if canonicals:
+                        ret.extend(canonicals)
 
             return jsonify([a.to_json() for a in ret])
         except Exception as e:
             print(e)
+            raise e
             abort(400, message=e)
 
 
@@ -132,7 +162,8 @@ class Paraphrases(Resource):
         try:
 
             args = paraphraser_parser.parse_args()
-            n = args.get("n", 10)
+            n = args.get("params", 10)
+            count = args.get("count", 10)
             paraphrasers = args.get("paraphrasers", [])
             score = args.get("score", True)
             canonicals = request.json
@@ -140,7 +171,7 @@ class Paraphrases(Resource):
             ret = []
             for c in canonicals:
                 c = IntentCanonical.from_json(c)
-                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, n,
+                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, count, n,
                                                        paraphrasers if paraphrasers else None,
                                                        score)
                 ret.append(c.to_json())
