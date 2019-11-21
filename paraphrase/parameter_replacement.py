@@ -1,4 +1,3 @@
-from swagger.entities import Paraphrase
 from swagger.param_sampling import ParamValueSampler
 
 

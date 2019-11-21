@@ -2,12 +2,12 @@ import re
 import traceback
 from os import walk
 
-from artemis.fileman.disk_memoize import memoize_to_disk
-from tqdm import tqdm
+from bs4 import BeautifulSoup
 from nltk import CFG
 from nltk.corpus.reader import VERB, json
 from nltk.parse.generate import generate
 from nltk.stem import WordNetLemmatizer
+from tqdm import tqdm
 
 from canonical.post_edits import finalize_utterance, entity_phrase, to_parameters_postfix, to_entities
 from canonical.rule_based import RuleBasedCanonicalGenerator
@@ -131,6 +131,8 @@ class TrainingExprGenerator:
         # remove links in swagger []()
         if "](" in text or "] (" in text:
             text = replace_hyperlinks(text)
+
+        text = BeautifulSoup(text, "lxml").text
 
         if ':' in text:
             text = text[:text.index(':')]

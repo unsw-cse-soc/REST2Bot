@@ -224,10 +224,9 @@ class SwaggerAnalyser:
                     op = Operation(m, url, summary, desc, response_desc, params, operation_id=operation_id,
                                    base_path=self.base_path())
 
-                    operation_id = ParamUtils.human_readable_name(operation_id)
+                    operation_id = ParamUtils.normalize(operation_id,)
                     if operation_id:
-                        operation_id.replace(" ", "_")
-                        op.intent = operation_id
+                        op.intent = operation_id.replace(" ", "_")
                     else:
                         op.intent = m + "_" + url.replace("/", " ").replace(" ", "_").replace("{", "").replace("}", "")
                     self.operations.append(op)

@@ -115,7 +115,7 @@ class Specs(Resource):
             return jsonify(ret)
         except Exception as e:
             print(e)
-            abort(501, message="Server is not able to process the request")
+            abort(501, message="Server is not able to process the request; {}".format(e))
 
 
 @api.route("/generate_canonicals")
