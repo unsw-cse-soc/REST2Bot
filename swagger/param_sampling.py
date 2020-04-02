@@ -4,7 +4,7 @@ from collections import Counter
 from faker import Faker
 from pandas import read_csv
 from pymantic import sparql
-
+from random import randint
 from swagger.entities import Param
 from swagger.swagger_utils import ParamUtils
 
@@ -58,8 +58,11 @@ class ParamValueSampler:
         if len(values) < n:
             values.extend(self.swagger_sampler(param, n))
 
-        if len(values) < n:
-            values.extend(self.wikidata_sampler(param, n))
+        try:
+            if len(values) < n:
+                values.extend(self.wikidata_sampler(param, n))
+        except:
+            return values
 
         return values[:n]
 
@@ -96,7 +99,8 @@ class ParamValueSampler:
             values = [str(v) for v in values]
 
         if param.type in {'integer', 'number'}:
-            values = [str(i) for i in range(1, n + 1)]
+            s = randint(0, 2000)
+            values = [str(i) for i in range(s, n + s)]
 
         if param.type == 'boolean':
             values = ['false', 'true']
@@ -110,7 +114,7 @@ class ParamValueSampler:
             return []
 
         examples = self.values[p]
-        return examples.most_common(n)
+        return [a[0] for a in examples.most_common(n)]
 
     def wikidata_sampler(self, param: Param, n: int):
 

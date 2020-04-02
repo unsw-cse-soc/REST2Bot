@@ -1,10 +1,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>REST2Bot</title>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.min.js'></script>
+    <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js'></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
     <style>
         /*custom font*/
         @import url(https://fonts.googleapis.com/css?family=Montserrat);
@@ -385,7 +387,7 @@
                                 }
                             },
                             request: {
-                                endpoint: 'http://localhost:8080/extract_operations'
+                                endpoint: 'http://localhost:8080/extract-operations'
                             },
                             validation: {
                                 allowedExtensions: ['yaml']
@@ -394,7 +396,10 @@
                                 onComplete: function (id, name, responseJSON, xhr) {
                                     console.log(responseJSON);
                                     console.log(name);
-                                    operations = operations.concat(responseJSON['operations'])
+                                    operations = operations.concat(responseJSON['apis'])
+                                    console.log("Operations:")
+                                    console.log(operations);
+                                    console.log( JSON.stringify(operations))
                                     var editor = new JsonEditor('#json-display', operations);
                                 },
                                 onError: function (id, name, errorReason, xhrOrXdr) {
@@ -468,7 +473,7 @@
                 if (summary)
                     q += "translators=SUMMARY&";
 
-                url = "http://localhost:8080/generate_canonicals?" + q;
+                url = "http://localhost:8080/generate-canonicals?" + q;
 
                 console.log(operations);
                 $.ajax({
@@ -480,6 +485,8 @@
                     success: function (result) {
                         canonicals = result;
                         var editor = new JsonEditor('#canonical-json-display', canonicals);
+                        console.log("Canonicals")
+                        console.log(JSON.stringify(canonicals))
                     }
                 })
 
@@ -572,7 +579,7 @@
                 if (pcount)
                     q += "n=" + pcount;
 
-                url = "http://localhost:8080/generate_paraphrases?" + q;
+                url = "http://localhost:8080/generate-paraphrases?" + q;
 
                 $.ajax({
                     type: 'post',
@@ -582,6 +589,7 @@
                     data: JSON.stringify(canonicals),
                     success: function (result) {
                         traning_data = result;
+                        console.log(JSON.stringify(traning_data))
                         var editor = new JsonEditor('#traning_data-json-display', traning_data);
                     }
                 })
@@ -601,49 +609,49 @@
 
         <table>
             <tr>
+                <td style="width: 100px">
+
+                </td>
                 <td style="width: 400px">
                     <div class="paraphrasers" style="text-align: left;">
 
-
-                        <span>Paraphrasers:</span>
-                        <div style="padding: 10px">
-                            <label class="container">Common-Prefix Paraphraser
-                                <input type="checkbox" checked="checked" id="COMMON_PREFIX" value="COMMON_PREFIX">
-                                <span class="checkmark"></span>
-                            </label>
-                            <label class="container">Nematus Paraphraser
-                                <input type="checkbox" id="NEMATUS" checked="checked" value="NEMATUS">
-                                <span class="checkmark"></span>
-                            </label>
-                            <label class="container">Apache Joshua
-                                <input type="checkbox" id="APACHE_JOSHUA" value="APACHE_JOSHUA" checked="checked">
-                                <span class="checkmark"></span>
-                            </label>
-
-                            <label disabled class="container" style="color: #525252">Crowdsourced Paraphrases
-                                (Figure-Eight)
-                                <input type="checkbox" disabled>
-                                <span class="checkmark" disabled></span>
-                            </label>
-
-
+                        <div style="margin-bottom: 9px">
+                            <span>Bot Platform:</span>
+                            <select name="platform" id="platform" style="display: inline-block; margin: 10px">
+                                <option selected="selected">Wit.ai</option>
+                                <option>Dialogflow</option>
+                                <option>Watson</option>
+                                <option>Lex</option>
+                                <option>Azure Bot</option>
+                            </select>
                         </div>
-                        <span>Number of paraphrases:</span>
-                        <input type="number" id="pcount"
-                               placeholder="Maximum number of paraphrases per canonical sentences"
-                               value="10">
-                        <label class="container"> Return paraphrase similarity score
-                            <input type="checkbox" checked="checked" id="SCORE" value="SCORE">
-                            <span class="checkmark"></span>
-                        </label>
+
+                        <script>
+                            $(function () {
+                                $("#platform").selectmenu();
+                                $("#programming_language").selectmenu();
+                            });
+                        </script>
+
+                        <input id="Bot"
+                               placeholder="Name of the bot"
+                               value="">
+
+                        <input id="Authorization"
+                               placeholder="Authorization Key"
+                               value="">
+                        <input id="APP_ID"
+                               placeholder="Application ID"
+                               value="">
+                        <!--<label class="container"> Return paraphrase similarity score-->
+                        <!--<input type="checkbox" checked="checked" id="APP_ID" value="SCORE">-->
+                        <!--<span class="checkmark"></span>-->
+                        <!--</label>-->
 
 
                     </div>
                 </td>
-                <td style="vertical-align: top;">
-                    Preview:
 
-                </td>
             </tr>
         </table>
 
@@ -660,55 +668,31 @@
 
         <table>
             <tr>
+                 <td style="width: 100px">
+
+                </td>
                 <td style="width: 400px">
-                    <div class="paraphrasers" style="text-align: left;">
 
-
-                        <span>Paraphrasers:</span>
-                        <div style="padding: 10px">
-                            <label class="container">Common-Prefix Paraphraser
-                                <input type="checkbox" checked="checked" id="COMMON_PREFIX" value="COMMON_PREFIX">
-                                <span class="checkmark"></span>
-                            </label>
-                            <label class="container">Nematus Paraphraser
-                                <input type="checkbox" id="NEMATUS" checked="checked" value="NEMATUS">
-                                <span class="checkmark"></span>
-                            </label>
-                            <label class="container">Apache Joshua
-                                <input type="checkbox" id="APACHE_JOSHUA" value="APACHE_JOSHUA" checked="checked">
-                                <span class="checkmark"></span>
-                            </label>
-
-                            <label disabled class="container" style="color: #525252">Crowdsourced Paraphrases
-                                (Figure-Eight)
-                                <input type="checkbox" disabled>
-                                <span class="checkmark" disabled></span>
-                            </label>
-
-
-                        </div>
-                        <span>Number of paraphrases:</span>
-                        <input type="number" id="pcount"
-                               placeholder="Maximum number of paraphrases per canonical sentences"
-                               value="10">
-                        <label class="container"> Return paraphrase similarity score
-                            <input type="checkbox" checked="checked" id="SCORE" value="SCORE">
-                            <span class="checkmark"></span>
-                        </label>
-
-
+                    <div style="margin-bottom: 9px">
+                        <span>Bot Platform:</span>
+                        <select name="programming_language" id="programming_language"
+                                style="display: inline-block; margin: 10px">
+                            <option selected="selected">Python</option>
+                            <option disabled="disabled">Java</option>
+                        </select>
                     </div>
-                </td>
-                <td style="vertical-align: top;">
-                    Preview:
-
-                </td>
+                    <div>
+                        Clink on the download button for the webhook functions. You can also access to a sample bot UI
+                        <a href="http://apikg-dc.eu.ngrok.io/bots/4a6d5e97-c12b-48e8-8712-38f2e92ae8de/ui">here</a>
+                    </div>
             </tr>
+
         </table>
 
 
         <input type="button" name="previous" class="previous action-button" value="Previous"/>
-        <input type="button" name="next" class="next action-button" value="Next"/>
+        <a type="button" name="Download" style="    font-size: x-small;  width: 85px;   display: inline-block;"
+           class="download action-button" value="Download" href="http://apikg-dc.eu.ngrok.io/bots/download/bot_4a6d5e97-c12b-48e8-8712-38f2e92ae8de.zip">Download</a>
 
 
     </fieldset>

@@ -1,3 +1,5 @@
+import warnings
+
 from swagger.param_sampling import ParamValueSampler
 
 
@@ -31,21 +33,23 @@ class ParamValParaphraser:
             values = self.param_sampler.sample(p, n)
             pname = "<< {} >>".format(p.name)
             new_utter = []
+
+            if not values:
+                warnings.warn("Unable to sample value: {}".format(p.to_json()))
+                continue
+
             for v in values:
                 for paraph in valid_uttrs:
-                    # paraph = t[0]
-                    # ps = t[1]
                     paraph = paraph.clone()
                     paraph.paraphrase = paraph.paraphrase.replace(pname, str(v))
-                    # paraph.entities = [p.clone() for p in paraph.entities]
                     for c in paraph.entities:
                         if c.name == p.name:
                             c.example = v
                         else:
                             continue
 
-                    # if new_u not in allset:
                     new_utter.append(paraph)
-
-            ret.extend(new_utter)
+            valid_uttrs = new_utter
+            # ret.extend(new_utter)
+        ret.extend(valid_uttrs)
         return ret

@@ -3,7 +3,7 @@ import traceback
 from collections import Counter
 from os import walk
 
-from swagger.entities import Param, Operation
+from swagger.entities import Param, Operation, API
 from swagger.swagger_parser import SwaggerParser
 from swagger.swagger_utils import ParamUtils
 
@@ -203,6 +203,10 @@ class SwaggerAnalyser:
 
     def analyse(self):
         for url in sorted(self.doc.paths):
+            title = self.doc.specification['info']['title']
+            api_url = self.doc.specification['host'] + self.doc.specification['basePath']
+            protocols = self.doc.specification['schemes']
+            api = API(title, api_url, protocols, self.operations)
             path = self.doc.paths[url]
             for m in sorted(path.keys()):
                 if m in ['get', 'post', 'put', 'delete', 'patch']:
@@ -224,14 +228,14 @@ class SwaggerAnalyser:
                     op = Operation(m, url, summary, desc, response_desc, params, operation_id=operation_id,
                                    base_path=self.base_path())
 
-                    operation_id = ParamUtils.normalize(operation_id,)
+                    operation_id = ParamUtils.normalize(operation_id)
                     if operation_id:
                         op.intent = operation_id.replace(" ", "_")
                     else:
                         op.intent = m + "_" + url.replace("/", " ").replace(" ", "_").replace("{", "").replace("}", "")
                     self.operations.append(op)
 
-        return self.operations
+        return api
 
     def base_path(self):
         return self.doc.base_path

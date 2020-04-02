@@ -1,4 +1,6 @@
 import logging
+import warnings
+
 import werkzeug
 from flask import Flask, jsonify, request
 from flask_restplus import Api, Resource, reqparse, abort, fields, inputs, Model
@@ -6,7 +8,7 @@ from flask_restplus import Api, Resource, reqparse, abort, fields, inputs, Model
 from canonical.api2can_gen import TrainingExprGenerator
 from canonical.rule_based import RuleBasedCanonicalGenerator
 from paraphrase.paraphrasers import Paraphraser, PARAPHRASERS
-from swagger.entities import Operation, Param, IntentCanonical
+from swagger.entities import Operation, Param, IntentCanonical, API
 from swagger.swagger_analysis import SwaggerAnalyser
 from flask_cors import CORS
 
@@ -19,10 +21,13 @@ api = Api(app,
 
 param_model = api.model('Parameter', {
     "name": fields.String,
+    "value": fields.String,
     "type": fields.String,
     "desc": fields.String,
     "example": fields.String,
     "required": fields.Boolean,
+    "start": fields.Integer,
+    "end": fields.Integer,
     "is_auth_param": fields.Boolean,
 })
 
@@ -47,7 +52,12 @@ canonical_model = api.model('IntentCanonicals', {
     "entities": fields.List(fields.Nested(param_model)),
     # "paraphrases": fields.List(fields.Nested(paraphrase_model)),
 })
-
+expression_model = api.model('Expression', {
+    "text": fields.String,
+    "method": fields.String,
+    "score": fields.Integer,
+    "entities": fields.List(fields.Nested(param_model)),
+})
 operation_model = api.model('Operation', {
     "base_path": fields.String,
     "verb": fields.String,
@@ -55,8 +65,16 @@ operation_model = api.model('Operation', {
     "intent": fields.String,
     "summary": fields.String,
     "desc": fields.String,
-    "canonical": fields.String,
+    "canonicals": fields.List(fields.Nested(canonical_model)),
     "params": fields.List(fields.Nested(param_model)),
+    "expressions": fields.List(fields.Nested(expression_model))
+})
+
+api_model = api.model('API', {
+    "title": fields.String,
+    "url": fields.String,
+    "protocols": fields.List(fields.String),
+    "operations": fields.List(fields.Nested(operation_model)),
 })
 
 expr_gen = TrainingExprGenerator()
@@ -74,10 +92,8 @@ paraphraser_parser.add_argument('params', type=int, help="number of sampled valu
 paraphraser_parser.add_argument('count', type=int, help="number of paraphrases", location='args')
 paraphraser_parser.add_argument('score', type=inputs.boolean, default=False, help="score generated paraphrases",
                                 location='args')
-paraphraser_parser.add_argument('paraphrasers', type=str,
-                                help='Pick from: {}'.format(", ".join(PARAPHRASERS)),
-                                action="append", location='args')
-
+paraphraser_parser.add_argument('paraphrasers', type=str, action="append", location='args',
+                                help='Pick from: {}'.format(", ".join(PARAPHRASERS)))
 
 TRANSLATORS = {
     "RULE",
@@ -85,15 +101,20 @@ TRANSLATORS = {
     "NEURAL"
 }
 canonical_parser = reqparse.RequestParser()
-canonical_parser.add_argument('translators', type=str,
-                                help='Pick from: {}'.format(", ".join(TRANSLATORS)),
-                                action="append", location='args')
+canonical_parser.add_argument('translators', type=str, action="append", location='args',
+                              help='Pick from: {}'.format(", ".join(TRANSLATORS)))
 
 
-@api.route("/extract_operations")
+#
+# platform_parser = reqparse.RequestParser()
+# platform_parser.add_argument('platform', choices=["Wit.ai"],
+#                               help='Pick from: {}'.format(", ".join(["Wit.ai"])))
+
+
+@api.route("/extract-operations")
 class Specs(Resource):
     @api.expect(yaml_parser)
-    @api.response(200, "Success", [operation_model])
+    @api.response(200, "Success", [api_model])
     def post(self):
         """
         extracts operations of a given swagger specs
@@ -106,19 +127,20 @@ class Specs(Resource):
             for file in files:
                 yaml = file.stream.read().decode("utf-8")
                 doc = SwaggerAnalyser(swagger=yaml).analyse()
-                ret.extend([a.to_json() for a in doc])
+                ret.append(doc.to_json())
 
             ret = {
-                "operations": ret,
+                "apis": ret,
+                # "size": len(ret),
                 "success": True,
             }
             return jsonify(ret)
         except Exception as e:
-            print(e)
+            raise e
             abort(501, message="Server is not able to process the request; {}".format(e))
 
 
-@api.route("/generate_canonicals")
+@api.route("/generate-canonicals")
 class Canonicals(Resource):
     @api.expect(canonical_parser, [operation_model])
     @api.response(200, "Success", [canonical_model])
@@ -131,19 +153,23 @@ class Canonicals(Resource):
             args = canonical_parser.parse_args()
             translators = args.get("translators", TRANSLATORS)
             lst = request.json
-            for o in lst:
-                operation = Operation.from_json(o)
-                if not translators or "SUMMARY" in translators:
-                    canonicals = expr_gen.to_canonical(operation, ignore_non_path_params=False)
 
-                    if canonicals:
-                        ret.extend(canonicals)
+            for api in lst:
+                api = API.from_json(api)
+                for operation in api.operations:
+                    operation.canonicals = []
+                    # operation = Operation.from_json(o)
+                    if not translators or "SUMMARY" in translators:
+                        canonicals = expr_gen.to_canonical(operation, ignore_non_path_params=False)
 
-                if not translators or "RULE" in translators:
-                    canonicals = rule_gen.translate(operation, sample_values=False, ignore_non_path_params=False)
-                    if canonicals:
-                        ret.extend(canonicals)
+                        if canonicals:
+                            operation.canonicals = canonicals
 
+                    if not translators or "RULE" in translators:
+                        canonicals = rule_gen.translate(operation, sample_values=False, ignore_non_path_params=False)
+                        if canonicals:
+                            operation.canonicals.extend(canonicals)
+                ret.append(api)
             return jsonify([a.to_json() for a in ret])
         except Exception as e:
             print(e)
@@ -151,7 +177,7 @@ class Canonicals(Resource):
             abort(400, message=e)
 
 
-@api.route("/generate_paraphrases")
+@api.route("/generate-paraphrases")
 class Paraphrases(Resource):
     @api.expect(paraphraser_parser, [fields.Nested(canonical_model)])
     @api.response(200, "Success", [canonical_paraphrase_model])
@@ -162,28 +188,34 @@ class Paraphrases(Resource):
         try:
 
             args = paraphraser_parser.parse_args()
-            n = args.get("params", 10)
-            count = args.get("count", 10)
+            n = int(request.args.get('params', 10))
+            count = int(request.args.get('count', 10))
             paraphrasers = args.get("paraphrasers", [])
             score = args.get("score", True)
-            canonicals = request.json
+            apis = request.json
 
             ret = []
-            for c in canonicals:
-                c = IntentCanonical.from_json(c)
-                c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, count, n,
-                                                       paraphrasers if paraphrasers else None,
-                                                       score)
-                ret.append(c.to_json())
+            for api in apis:
+                api = API.from_json(api)
 
-            return jsonify(ret[:n])
+                for o in api.operations:
+                    for c in o.canonicals:
+                        # c = IntentCanonical.from_json(c)
+                        c.paraphrases = paraphraser.paraphrase(c.canonical, c.entities, count, n,
+                                                               paraphrasers if paraphrasers else None,
+                                                               score)
+                        c.paraphrases = list(c.paraphrases)[:n]
+
+                ret.append(api.to_json())
+
+            return jsonify(ret)
 
         except Exception as e:
             raise e
             abort(400, message=e)
 
 
-@api.route("/suggest_parameter_values")
+@api.route("/entities/suggest-values")
 class EntityValues(Resource):
     @api.expect(param_model, query_parser)
     def post(self):
@@ -203,6 +235,74 @@ class EntityValues(Resource):
         except Exception as e:
             print(e)
             abort(400, message=e)
+
+
+@api.route("/platforms/<platform>/generate-training-data")
+@api.param('platform', 'The target bot development platform')
+class BotPlatformTrainingData(Resource):
+    @api.expect([api_model])
+    def post(self, platform):
+        ret = []
+        apis = request.json
+        for api in apis:
+            api = API.from_json(api)
+            ret.append(convert_api(api))
+        return ret
+
+
+def convert_api(api):
+    def to_entity(param, utterance):
+        return {
+            "entity": param["name"],
+            "value": param["example"],
+            "start": utterance.index(str(param["example"])),
+            "end": utterance.index(str(param["example"])) + len(str(param["example"])) - 1,
+            "type": param["type"]
+        }
+
+    def to_expressions(operation):
+        expressions, entities = [], {}
+        for c in operation.canonicals:
+            if not hasattr(c, 'paraphrases'):
+                warnings.warn("No paraphrases for the canonical:{}".format(c.to_json()))
+                continue
+            for p in c.paraphrases:
+                expressions.append({
+                    "text": p['paraphrase'],
+                    "entities": [to_entity(e, p['paraphrase']) for e in p['entities']] if 'entities' in p else []
+                })
+                if 'entities' in p:
+                    for e in p['entities']:
+                        if e['name'] not in entities:
+                            entities[e['name']] = []
+                        # if 'example' in e:
+                        entities[e['name']].append(e['example'])
+        entities2 = []
+        for e in entities:
+            entities2.append({
+                "entity": e,
+                "values": entities[e]
+            })
+        return expressions, entities2
+
+    def convert_method(operation):
+
+        expressions, entities = to_expressions(operation)
+        return {
+            "intent_name": operation.intent,
+            "method_path": operation.url,
+            "type": operation.verb,
+            "parameters": [p.to_json() for p in operation.params],
+            "expressions": expressions,
+            "entities": entities,
+        }
+
+    return {
+        "api_title": api.title,
+        "api_url": api.url,
+        "api_protocol": api.protocols,
+        "api_methods": [convert_method(o) for o in api.operations]
+    }
 
 
 if __name__ == '__main__':

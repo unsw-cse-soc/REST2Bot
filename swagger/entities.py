@@ -208,9 +208,9 @@ class Param:
 
 
 class Operation:
-    def __init__(self, verb, url, summary=None, desc=None, response_desc=None, params=None, canonical_expr=None,
+    def __init__(self, verb, url, summary=None, desc=None, response_desc=None, params=None, canonicals=None,
                  operation_id=None, base_path=None, **keys):
-        self.canonical_expr = canonical_expr
+        self.canonicals = canonicals
         self.params = params
         self.verb = verb
         self.url = url
@@ -227,6 +227,8 @@ class Operation:
         ret = self.__dict__
 
         ret['params'] = [p.to_json() for p in ret['params']]
+        if ret['canonicals']:
+            ret['canonicals'] = [p.to_json() for p in ret['canonicals']]
 
         ret = {k: v for k, v in ret.items() if v}
         return OrderedDict(ret)
@@ -244,8 +246,51 @@ class Operation:
         if ret.params:
             for p in ret.params:
                 params.append(Param.from_json(p))
-
         ret.params = params
+
+        canonicals = []
+        if ret.canonicals:
+            for p in ret.canonicals:
+                canonicals.append(IntentCanonical.from_json(p))
+
+        ret.canonicals = canonicals
+
+        return ret
+
+
+class API:
+    def __init__(self, title, url, protocols, operations, **keys):
+
+        self.url = url
+        self.protocols = protocols
+        self.operations = operations
+        self.title = title
+        for key in keys:
+            setattr(self, key, keys[key])
+
+    def to_json(self):
+        ret = self.__dict__
+
+        ret['operations'] = [p.to_json() for p in ret['operations']]
+
+        ret = {k: v for k, v in ret.items() if v}
+        return OrderedDict(ret)
+
+    @staticmethod
+    def from_json(d: dict):
+
+        empty_sample = API(None, None, None, None).__dict__
+        for key in empty_sample:
+            if key not in d:
+                d[key] = empty_sample[key]
+
+        ret = API(**d)
+        operations = []
+        if ret.operations:
+            for p in ret.operations:
+                operations.append(Operation.from_json(p))
+
+        ret.operations = operations
 
         return ret
 

@@ -54,7 +54,7 @@ class Paraphraser:
 
         if score:
             ps = similarity_score(utterance, ps)
-        ps = list(filter(lambda p: p.paraphrase.lower() != utterance.lower(), ps))
+        ps = list(filter(lambda p: p.paraphrase.lower() != utterance.lower() and "<<" not in p.paraphrase, ps))
         return set(ps)
 
 
