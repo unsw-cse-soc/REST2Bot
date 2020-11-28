@@ -1,7 +1,6 @@
 import json
 from collections import namedtuple, OrderedDict
 
-
 class Paraphrase:
     def __init__(self, paraphrase, entities, score=None, method=None):
         self.entities = entities
