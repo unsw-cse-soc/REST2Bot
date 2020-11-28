@@ -4,7 +4,6 @@ import warnings
 import werkzeug
 from flask import Flask, jsonify, request
 from flask_restplus import Api, Resource, reqparse, abort, fields, inputs, Model
-
 from canonical.api2can_gen import TrainingExprGenerator
 from canonical.rule_based import RuleBasedCanonicalGenerator
 from paraphrase.paraphrasers import Paraphraser, PARAPHRASERS
