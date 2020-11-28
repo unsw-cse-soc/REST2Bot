@@ -69,7 +69,6 @@ def createParaphrase(paraphrases, entities, method):
 
     return ret
 
-
 if __name__ == "__main__":
     for p in Paraphraser().paraphrase("get a customer with id 1", [Param("id", example=1)]):
         print(p)
