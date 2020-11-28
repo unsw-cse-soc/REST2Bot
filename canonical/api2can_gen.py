@@ -1,14 +1,12 @@
 import re
 import traceback
 from os import walk
-
 from bs4 import BeautifulSoup
 from nltk import CFG
 from nltk.corpus.reader import VERB, json
 from nltk.parse.generate import generate
 from nltk.stem import WordNetLemmatizer
 from tqdm import tqdm
-
 from canonical.post_edits import finalize_utterance, entity_phrase, to_parameters_postfix, to_entities
 from canonical.rule_based import RuleBasedCanonicalGenerator
 from swagger.entities import Operation, IntentCanonical
