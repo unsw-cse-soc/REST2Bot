@@ -17,7 +17,7 @@ except Exception as e:
 try:
     sleep(3)
     print("Loading CoreNLP")
-    nlp = StanfordCoreNLP("/media/may/Data/servers/stanford-corenlp-full-2018-10-05", port=9000)
+    nlp = StanfordCoreNLP("../stanford-corenlp-full-2018-10-05", port=9000)
     print("CoreNLP loaded")
 except Exception as e:
     print("Unable to run CoreNLP", e)
